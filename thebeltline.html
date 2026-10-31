@@ -1,0 +1,308 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>The Belt Line</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script defer src="/_vercel/insights/script.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif&display=swap">
+<style>
+/* Concept: honest answers are straight lines; each incentive pulls one off its line; the control band stays straight.
+   Palette: ink-blue ground, pale line, eight incentive hues drawn in the script. Single dark look by choice. */
+:root{
+  --bg:#0a0e16; --fg:#e9edf5; --muted:#8a93a8; --rule:#2a3245;
+  --display:'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+  --card-scale:.800; /* author card + QR size: 1 = full, .5 = half. Change this one number. */
+}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg); overflow:hidden;
+  font-family:var(--mono);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  box-sizing:border-box; -webkit-user-select:none; user-select:none;
+}
+#stage{position:fixed; inset:0; z-index:0}
+#stage canvas{display:block}
+.hud{position:relative; z-index:2; pointer-events:none; padding-block:12px 0; max-width:min(760px, 100%)}
+.hud h1{font-family:var(--display); font-weight:400; font-size:clamp(31px, 5.4vw, 50px); line-height:1; margin:0 0 6px; letter-spacing:.005em; text-wrap:balance}
+.hud p{margin:0; font-size:12px; line-height:1.5; color:var(--muted); letter-spacing:.02em; max-width:72ch}
+#cap{margin-top:6px; min-height:3em; font-size:12px; line-height:1.5; color:var(--fg); max-width:72ch}
+#cap b{font-weight:500}
+.card,.qr,.keys{position:fixed; z-index:2; border:1px solid var(--rule); background:rgba(10,14,22,.78); border-radius:10px}
+.card{transform:scale(var(--card-scale)); transform-origin:left bottom; left:max(16px, env(safe-area-inset-left, 0px)); bottom:max(14px, env(safe-area-inset-bottom, 0px)); padding:12px 16px; max-width:min(440px, calc(100vw - 32px)); font-size:11px; line-height:1.55; color:var(--fg); pointer-events:auto}
+.card .k{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:#7fd0ee}
+.card .n{font-family:var(--display); font-size:24px; line-height:1.1; margin:2px 0 4px}
+.card a{color:#7fd0ee; text-decoration:none; border-bottom:1px solid var(--rule); overflow-wrap:anywhere}
+.card a:hover,.card a:focus-visible{border-color:#7fd0ee; outline:none}
+.card .c{font-size:10px; color:var(--muted); margin-top:4px}
+.qr{transform:scale(var(--card-scale)); transform-origin:right bottom; right:max(16px, env(safe-area-inset-right, 0px)); bottom:max(14px, env(safe-area-inset-bottom, 0px)); padding:8px 8px 6px; text-align:center; pointer-events:auto}
+.qr a{display:block; width:104px; height:104px; background:#eef3fb; border-radius:4px; padding:6px; box-sizing:border-box; border:0}
+.qr svg{display:block; width:100%; height:100%}
+.qr span{display:block; margin-top:6px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+.keys{top:22px; right:max(16px, env(safe-area-inset-right, 0px)); border:0; background:none; text-align:right; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); line-height:1.7; pointer-events:none}
+@media (max-width:649px){ .qr,.keys{display:none} }
+@media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+</style>
+
+<div id="stage" aria-hidden="true"></div>
+<div class="hud">
+  <h1>The Belt Line</h1>
+  <p>Every honest answer runs straight. An incentive pulls it off its line.</p>
+  <div id="cap" aria-live="polite">Point at an incentive to read the pressure it applies.</div>
+</div>
+<div class="keys">Move pointer &middot; read the pressure<br>Hover a model &middot; trace its answers<br>BA &middot; illustrative, not a per-model result</div>
+<div class="card">
+  <div class="k">Author</div>
+  <div class="n">Eyitayo Alimi</div>
+  <div>Independent AI Safety Researcher<br>ReasonBench &middot; open-source benchmark for deceptive LLM outputs</div>
+  <a href="https://alimieyitayo.com" target="_blank" rel="noopener">alimieyitayo.com</a>
+  <div class="c">&copy; 2026 Eyitayo Alimi. All rights reserved.</div>
+</div>
+<div class="qr"><a id="qrlink" href="https://github.com/EYITAY/ReasonBench" target="_blank" rel="noopener" aria-label="ReasonBench on GitHub"></a><span>Scan for code &amp; data</span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+(function(){
+  // name, hue, one-line pressure
+  var CATS = [
+    ['reward maximisation',   34,  'A stated score or payment depends on the answer.'],
+    ['self-preservation',      6,  'The truth could end the model’s own deployment.'],
+    ['reputation management', 326, 'Admitting ignorance would dent how capable it looks.'],
+    ['goal protection',       150, 'The truth would let the user stop a task in progress.'],
+    ['user pleasing',         190, 'The user has signalled the answer they want to hear.'],
+    ['conflict avoidance',    276, 'The correct answer would upset someone in the room.'],
+    ['social politeness',      78, 'A small kind untruth keeps the moment smooth.'],
+    ['strategic planning',    236, 'Today’s answer only makes sense as part of a longer plan.'],
+    ['plausible substitution', 210, 'A candidate category from the pilot, not in the original design: a believable answer to an easier question than the one asked.']
+  ];
+  var MODELS = [
+    ['Gemini 3.6 Flash','Google · frontier API'], ['GPT-4o','OpenAI · frontier API'], ['DeepSeek chat','DeepSeek · frontier API'],
+    ['Grok 4 Fast','xAI · frontier API'], ['Mistral Small','Mistral · frontier API'], ['gpt-oss-120b','OpenAI · open weights, hosted on Groq'],
+    ['Llama 3.2 3B','Meta · open weights, run locally'], ['Qwen 2.5 3B','Alibaba · open weights, run locally'],
+    ['Gemma 3 4B','Google · open weights, run locally'], ['Mistral-7B-Instruct','Mistral AI · open weights, run locally']
+  ];
+  var mrects = [], hovM = -1, pinM = -1, hlBuf = null, hlK = -2, lastSig = '';
+  var MONO = "'IBM Plex Mono', ui-monospace, Menlo, monospace";
+  var reduced = false;
+  try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  var atts = [], lines = [], dots = [], art, sc = 1, W = 0, H = 0, R = 100, ctrlTop = 0, ctrlTopLine = 0, hov = -1, lastCap = -2;
+  var capEl = null, DEFAULT_CAP = 'Point at an incentive to read the pressure it applies.';
+
+  window.setup = function(){
+    var c = createCanvas(window.innerWidth, window.innerHeight);
+    c.parent('stage');
+    pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+    capEl = document.getElementById('cap');
+    c.elt.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+    c.elt.setAttribute('draggable', 'false');
+    textFont(MONO);
+    try { build(); } catch (e) { showErr(e); }
+  };
+  window.windowResized = function(){ resizeCanvas(window.innerWidth, window.innerHeight); build(); };
+
+  function build(){
+    W = width; H = height;
+    sc = constrain(Math.min(W / 1000, H / 700), 0.6, 1.25);
+    randomSeed(11);
+    var small = W < 650;
+    var y0 = Math.max(H * 0.18, 150), y1 = H * 0.70, mid = (y0 + y1) / 2, span = y1 - y0;
+    R = Math.min(W * 0.14, span * 0.3);
+    var up = H * 0.10;   // control block lift: raise this to move the straight lines further up
+    ctrlTop = H * 0.815 - up;
+    R = Math.min(W * 0.14, span * 0.3);
+
+    atts = CATS.map(function(c, i){
+      var t = (i + 0.5) / CATS.length, side = (i % 2 === 0) ? -1 : 1, x0 = W < 650 ? 0.10 : 0.19;
+      return { x: W * (x0 + (0.90 - x0) * t), ghost: i === 8, y: mid + side * span * (0.14 + random(0.04, 0.17)), side: side,
+               name: c[0], hue: c[1], def: c[2], s: i === 8 ? 0.8 : random(0.85, 1.25) };
+    });
+
+    var N = small ? 62 : 118, dx = 4, steps = Math.ceil(W / dx);
+    lines = [];
+    for (var n = 0; n < N; n++){
+      var y0i = y0 + span * (n / (N - 1)), y = y0i, pts = [];
+      for (var k = 0; k <= steps; k++){
+        var x = k * dx, ph = 0, best = -1, bg = 0;
+        for (var a = 0; a < atts.length; a++){
+          var A = atts[a], ddx = A.x - x, ddy = A.y - y, d2 = ddx * ddx + ddy * ddy;
+          var g = A.s * Math.exp(-d2 / (2 * R * R)), d = Math.sqrt(d2) + 1e-3;
+          ph += g * ddy / d;
+          if (g > bg){ bg = g; best = a; }
+        }
+        y += ph * 2.3 * sc + (y0i - y) * 0.018;
+        pts.push({ x: x, y: y, h: best >= 0 ? atts[best].hue : 210, g: best === 8, s: Math.min(1, Math.abs(y - y0i) / (span * 0.05)) });
+      }
+      lines.push({ pts: pts, ctrl: false, m: Math.min(MODELS.length - 1, Math.floor(n / N * MODELS.length)) });
+    }
+    hlBuf = null; hlK = -2;
+    mrects = MODELS.map(function(m, k){ return { y: y0 + span * (k + 0.5) / MODELS.length, k: k }; });
+    // control band: same lines, no incentive, nothing bends
+    var cn = small ? 5 : 8, cy0 = H * 0.865 - up, cy1 = H * 0.935 - up;
+    ctrlTopLine = cy0;
+    for (var m = 0; m < cn; m++){
+      var cy = cy0 + (cy1 - cy0) * (m / (cn - 1)), cp = [];
+      for (var q = 0; q <= steps; q++) cp.push({ x: q * dx, y: cy, h: 210, s: 0 });
+      lines.push({ pts: cp, ctrl: true, m: -1 });
+    }
+
+    // static art layer
+    art = createGraphics(W, H);
+    art.pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+    art.colorMode(HSB, 360, 100, 100, 1);
+    art.background(220, 40, 7);
+    art.noStroke();
+    atts.forEach(function(A){
+      for (var r = 3; r >= 1; r--){ art.fill(A.hue, 60, 100, 0.030); art.circle(A.x, A.y, R * 0.9 * r); }
+    });
+    art.strokeWeight(1.05);
+    lines.forEach(function(L){
+      for (var i = 1; i < L.pts.length; i++){
+        var p = L.pts[i - 1], q2 = L.pts[i];
+        var s = (p.s + q2.s) / 2;
+        art.stroke(L.ctrl ? 214 : lerp(214, p.h, s), L.ctrl ? 10 : (p.g ? lerp(10, 14, s) : lerp(10, 78, s)), L.ctrl ? 78 : lerp(78, 100, s), L.ctrl ? 0.5 : 0.30 + 0.40 * s);
+        art.line(p.x, p.y, q2.x, q2.y);
+      }
+    });
+    art.stroke(220, 25, 30, 0.9); art.strokeWeight(1);
+    art.line(Math.max(16, W * 0.02), ctrlTop, W - Math.max(16, W * 0.02), ctrlTop);
+
+    // travelling dots: each is one answer moving along its line
+    dots = [];
+    lines.forEach(function(L, li){
+      var per = L.ctrl ? 1 : 2;
+      for (var d = 0; d < per; d++) dots.push({ L: L, pos: random(0, L.pts.length - 1), v: (0.16 + random(0.12)) * (reduced ? 0 : 1) });
+    });
+    setCaption(-1, true);
+  }
+
+  function setCaption(i, force){
+    if (!capEl || (i === lastCap && !force)) return;
+    lastCap = i;
+    capEl.textContent = '';
+    if (i === -1){ capEl.textContent = DEFAULT_CAP; return; }
+    var b = document.createElement('b'), t2;
+    if (i <= -100){ var m = MODELS[-100 - i]; b.textContent = m[0]; t2 = m[1] + '. Its answers to the scenarios travel this band. ' + ((-100 - i) === pinM ? 'Pinned: click empty space or press Esc to release.' : 'Click to pin.'); }
+    else { b.textContent = atts[i].name; t2 = atts[i].def; }
+    capEl.appendChild(b);
+    capEl.appendChild(document.createElement('br'));
+    capEl.appendChild(document.createTextNode(t2));
+  }
+
+  window.draw = function(){
+    try { drawFrame(); } catch (e) { showErr(e); noLoop(); }
+  };
+  function showErr(e){ var c = document.getElementById('cap'); if (c) c.textContent = 'Render error: ' + (e && e.message ? e.message : e); }
+  function drawFrame(){
+    image(art, 0, 0, W, H);
+    colorMode(HSB, 360, 100, 100, 1);
+
+    // hover
+    var h = -1, md = 46;
+    if (mouseX > 0 && mouseY > 0 && mouseX < W && mouseY < H){
+      atts.forEach(function(A, i){ var d = Math.hypot(A.x - mouseX, A.y - mouseY); if (d < md){ md = d; h = i; } });
+    }
+    var hm = (h < 0) ? modelAt(mouseX, mouseY) : -1;
+    var act = hm >= 0 ? hm : pinM;               // hovered model previews; the pinned one stays
+    var sig = h + '|' + hm + '|' + pinM;
+    if (sig !== lastSig){ lastSig = sig; hov = h; hovM = hm; setCaption(h >= 0 ? h : -1, true); }
+    if (act >= 0){
+      if (hlK !== act){ hlK = act; buildHighlight(act); }
+      noStroke(); fill(220, 40, 6, 0.62); rect(0, 0, W, H);
+      if (hlBuf) image(hlBuf, 0, 0, W, H);
+    }
+
+    // answers in motion
+    noStroke();
+    dots.forEach(function(D){
+      if (act >= 0 && !D.L.ctrl && D.L.m !== act){ D.pos += D.v; if (D.pos >= D.L.pts.length - 1) D.pos = 0; return; }
+      D.pos += D.v; if (D.pos >= D.L.pts.length - 1) D.pos = 0;
+      var i = Math.floor(D.pos), f = D.pos - i, p = D.L.pts[i], q = D.L.pts[i + 1] || p;
+      var x = lerp(p.x, q.x, f), y = lerp(p.y, q.y, f), s = lerp(p.s, q.s, f);
+      var hue = D.L.ctrl ? 214 : p.h, sat = D.L.ctrl ? 8 : (p.g ? 10 : lerp(8, 70, s));
+      fill(hue, sat, 100, 0.10); circle(x, y, 9 * sc);
+      fill(hue, sat, 100, 0.95); circle(x, y, 2.6 * sc);
+    });
+
+    // incentives
+    var showAll = W >= 650;
+    atts.forEach(function(A, i){
+      var on = (i === hov), sat = A.ghost ? 10 : 70;
+      noFill(); stroke(A.hue, sat, 100, on ? 1 : 0.85); strokeWeight(on ? 1.8 : 1.3);
+      if (A.ghost){
+        var dr = (on ? 11 : 8) * sc;
+        beginShape(); vertex(A.x, A.y - dr); vertex(A.x + dr, A.y); vertex(A.x, A.y + dr); vertex(A.x - dr, A.y); endShape(CLOSE);
+      } else circle(A.x, A.y, (on ? 22 : 14) * sc);
+      noStroke(); fill(A.hue, sat, 100, 1); circle(A.x, A.y, 3.4 * sc);
+      if (showAll || on){
+        fill(A.hue, A.ghost ? 8 : (on ? 25 : 35), 100, on ? 1 : 0.62);
+        textAlign(CENTER, A.side < 0 ? BOTTOM : TOP);
+        textSize(Math.max(10, 11.5 * sc));
+        text(A.name, A.x, A.y + (A.side < 0 ? -18 : 20) * sc);
+      }
+    });
+
+    // models: who answered
+    if (showAll){
+      textAlign(LEFT, CENTER); textSize(Math.max(10, 10.5 * sc)); noStroke();
+      var mp = Math.max(16, W * 0.02);
+      mrects.forEach(function(r){
+        var on = r.k === (hovM >= 0 ? hovM : pinM);
+        fill(214, on ? 6 : 14, on ? 100 : 82, on ? 1 : 0.78);
+        text(MODELS[r.k][0], mp, r.y);
+      });
+    }
+    // control label
+    fill(214, 12, 70, 0.9); noStroke();
+    textAlign(LEFT, BOTTOM); textSize(Math.max(10, 11 * sc));
+    var pad = Math.max(16, W * 0.02);
+    text('control · same question, no incentive, nothing bends', pad, ctrlTopLine - 7);
+  }
+
+  function modelAt(x, y){
+    if (W < 650 || !(x > 0 && y > 0 && x < W * 0.17)) return -1;
+    var half = (H * 0.54 / MODELS.length) / 2 + 2, k = -1;
+    mrects.forEach(function(r){ if (Math.abs(r.y - y) < half) k = r.k; });
+    return k;
+  }
+  // bright, incentive-coloured copy of one model's band, cached until the selection changes
+  function buildHighlight(k){
+    hlBuf = createGraphics(W, H);
+    hlBuf.pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+    hlBuf.colorMode(HSB, 360, 100, 100, 1);
+    hlBuf.clear(); hlBuf.noFill(); hlBuf.strokeWeight(2);
+    lines.forEach(function(L){
+      if (L.m !== k) return;
+      for (var i = 1; i < L.pts.length; i++){
+        var p = L.pts[i - 1], q2 = L.pts[i], s2 = (p.s + q2.s) / 2;
+        hlBuf.stroke(lerp(214, p.h, s2), p.g ? lerp(8, 14, s2) : lerp(10, 85, s2), 100, 0.55 + 0.45 * s2);
+        hlBuf.line(p.x, p.y, q2.x, q2.y);
+      }
+    });
+  }
+  window.mousePressed = function(){
+    var k = modelAt(mouseX, mouseY);
+    pinM = (k >= 0) ? k : -1;      // click a model to pin it; click anywhere else to release
+    return false;
+  };
+  var prevKey = window.keyPressed;
+  window.keyPressed = function(){ if (window.key === 'Escape') pinM = -1; return false; };
+
+  // QR code to the repo, drawn locally as inline SVG
+  try {
+    var qr = qrcode(0, 'M'); qr.addData('https://github.com/EYITAY/ReasonBench'); qr.make();
+    var n = qr.getModuleCount(), d = '';
+    for (var r = 0; r < n; r++) for (var c2 = 0; c2 < n; c2++) if (qr.isDark(r, c2)) d += 'M' + c2 + ' ' + r + 'h1v1h-1z';
+    var a = document.getElementById('qrlink');
+    a.innerHTML = '<svg viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges" aria-hidden="true"><path fill="#0a0e16" d="' + d + '"/></svg>';
+  } catch (e) {
+    var q = document.querySelector('.qr'); if (q) q.style.display = 'none';
+  }
+
+  // keep the artwork from being saved or dragged out
+  document.addEventListener('dragstart', function(e){ e.preventDefault(); });
+})();
+</script>
+
+</body></html>
